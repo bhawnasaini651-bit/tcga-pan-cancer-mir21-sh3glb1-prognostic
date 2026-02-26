@@ -1,83 +1,154 @@
-sink("logs/01_define_cohorts_STAR.log", split = TRUE)# 01_define_cohorts_STAR.R
-# Purpose:
-# Identify TCGA cohorts eligible for pan-cancer analysis
-# Criteria:
-#   - Tumor samples >= 50
-#   - Normal samples >= 10
-#   - Survival data >= 50 patients
-#   - STAR - Counts available
+#!/usr/bin/env Rscript
 
-library(TCGAbiolinks)
-library(dplyr)
+# ==========================================================
+# TCGA Pan-Cancer Cohort Definition Script (STAR Counts)
+# Reproducible + Git-Ready Version
+# ==========================================================
 
-# Get all TCGA projects
-projects <- TCGAbiolinks:::getGDCprojects()$project_id
-tcga_projects <- projects[grep("TCGA", projects)]
+suppressPackageStartupMessages({
+  library(TCGAbiolinks)
+  library(dplyr)
+})
 
+# -----------------------------
+# Setup
+# -----------------------------
+start_time <- Sys.time()
+
+dir.create("logs", recursive = TRUE, showWarnings = FALSE)
+dir.create("results/tables", recursive = TRUE, showWarnings = FALSE)
+
+log_file <- "logs/01_define_cohorts_STAR.log"
+sink(log_file, split = TRUE)
+
+cat("====================================================\n")
+cat("TCGA Cohort Definition (STAR Counts)\n")
+cat("Execution time:", format(start_time), "\n")
+cat("====================================================\n\n")
+
+# -----------------------------
+# Retrieve TCGA Projects
+# -----------------------------
+cat("Retrieving TCGA project list...\n")
+
+projects_df <- getGDCprojects()
+
+tcga_projects <- projects_df %>%
+  filter(grepl("^TCGA-", project_id)) %>%
+  pull(project_id) %>%
+  sort()
+
+cat("Total TCGA projects detected:", length(tcga_projects), "\n\n")
+
+# -----------------------------
+# Initialize container
+# -----------------------------
 cohort_summary <- data.frame()
 
-for (proj in tcga_projects) {
-  
-  message("Checking ", proj)
-  
-  # Query STAR counts
+# -----------------------------
+# Loop Through Projects
+# -----------------------------
+for (tcga_project in tcga_projects) {
+
+  cat("----------------------------------------------------\n")
+  cat("Processing:", tcga_project, "\n")
+
   query <- tryCatch({
     GDCquery(
-      project = proj,
+      project = tcga_project,
       data.category = "Transcriptome Profiling",
       data.type = "Gene Expression Quantification",
       workflow.type = "STAR - Counts"
     )
-  }, error = function(e) return(NULL))
-  
+  }, error = function(e) {
+    cat("Query failed:", e$message, "\n")
+    return(NULL)
+  })
+
   if (is.null(query)) next
-  
-  metadata <- getResults(query)
-  if (nrow(metadata) == 0) next
-  
-  sample_type <- metadata$shortLetterCode
-  
-  tumor_n  <- sum(sample_type == "TP")
-  normal_n <- sum(sample_type == "NT")
-  
-  # Clinical survival data
-  clinical <- tryCatch({
-    GDCquery_clinic(project = proj, type = "clinical")
-  }, error = function(e) return(NULL))
-  
-  if (is.null(clinical)) next
-  
-  survival_n <- sum(!is.na(clinical$days_to_death) |
-                    !is.na(clinical$days_to_last_follow_up))
-  
+
+  results <- tryCatch({
+    getResults(query)
+  }, error = function(e) {
+    cat("Failed retrieving results:", e$message, "\n")
+    return(NULL)
+  })
+
+  if (is.null(results) || nrow(results) == 0) {
+    cat("No STAR files found.\n")
+    next
+  }
+
+  # -----------------------------
+  # Sample Counting
+  # -----------------------------
+  sample_type <- results$sample_type
+
+  tumor_n  <- sum(sample_type == "Primary Tumor", na.rm = TRUE)
+  normal_n <- sum(sample_type == "Solid Tissue Normal", na.rm = TRUE)
+
+  cat("Tumor samples:", tumor_n, "\n")
+  cat("Normal samples:", normal_n, "\n")
+  cat("Total files:", nrow(results), "\n")
+
+  # -----------------------------
+  # Filtering Threshold
+  # (Adjust based on survival needs)
+  # -----------------------------
+  if (tumor_n < 50) {
+    cat("Skipped (tumor_n < 50)\n")
+    next
+  }
+
+  # -----------------------------
+  # Append to summary
+  # -----------------------------
   cohort_summary <- rbind(
     cohort_summary,
     data.frame(
-      project = proj,
+      project = tcga_project,
       tumor_samples = tumor_n,
       normal_samples = normal_n,
-      survival_patients = survival_n
+      total_files = nrow(results),
+      stringsAsFactors = FALSE
     )
   )
 }
 
-# Save full summary
-write.csv(cohort_summary,
-          "results/tables/cohort_sample_summary.csv",
-          row.names = FALSE)
+# -----------------------------
+# Final Validation
+# -----------------------------
+if (nrow(cohort_summary) == 0) {
+  cat("\nNo cohorts passed filtering threshold.\n")
+  sink()
+  stop("No cohorts were successfully processed.")
+}
 
-# Apply eligibility filter
-eligible_cohorts <- cohort_summary %>%
-  filter(
-    tumor_samples >= 50,
-    normal_samples >= 10,
-    survival_patients >= 50
-  )
+# -----------------------------
+# Save Results
+# -----------------------------
+output_file <- "results/tables/cohort_summary_STAR.csv"
 
-write.csv(eligible_cohorts,
-          "results/tables/eligible_cohorts.csv",
-          row.names = FALSE)
+write.csv(
+  cohort_summary,
+  output_file,
+  row.names = FALSE
+)
 
-message("Cohort screening complete.")
+cat("\n====================================================\n")
+cat("Cohort definition completed successfully.\n")
+cat("Cohorts passing threshold:", nrow(cohort_summary), "\n")
+cat("Results saved to:", output_file, "\n")
+cat("====================================================\n")
+
+# -----------------------------
+# Save Session Info (Reproducibility)
+# -----------------------------
+session_file <- "logs/sessionInfo_define_cohorts.txt"
+writeLines(capture.output(sessionInfo()), session_file)
+
+end_time <- Sys.time()
+cat("Execution finished at:", format(end_time), "\n")
+cat("Total runtime:", round(difftime(end_time, start_time, units = "mins"), 2), "minutes\n")
 
 sink()

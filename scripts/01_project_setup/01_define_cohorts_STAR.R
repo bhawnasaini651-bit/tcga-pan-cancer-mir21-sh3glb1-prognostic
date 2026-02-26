@@ -1,4 +1,4 @@
-# 01_define_cohorts_STAR.R
+sink("logs/01_define_cohorts_STAR.log", split = TRUE)# 01_define_cohorts_STAR.R
 # Purpose:
 # Identify TCGA cohorts eligible for pan-cancer analysis
 # Criteria:
@@ -80,3 +80,4 @@ write.csv(eligible_cohorts,
 
 message("Cohort screening complete.")
 
+sink()

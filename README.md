@@ -1,5 +1,5 @@
-TCGA Pan-Cancer Prognostic Analysis
-miR-21 and SH3GLB1
+PROJECT TITLE: TCGA Pan-Cancer Prognostic Analysis
+FOCUS: miR-21 and SH3GLB1
 
 Objective:
 Pan-cancer evaluation of miR-21 and SH3GLB1 expression and their prognostic impact across selected TCGA tumor types with available tumor and normal samples.
@@ -10,13 +10,14 @@ Analyses
 3. Kaplan-Meier survival analysis
 4. Multivariate Cox proportional hazards modeling (adjusted for age and stage)
 5. Pan-cancer integration of hazard ratios
+6. Tools: R, TCGAbiolinks.
 
 Data Source
 The Cancer Genome Atlas (TCGA)
 
 Structure
-raw/       - original TCGA downloads (never modified)
-data/      - processed and merged datasets
+raw/       - original TCGA downloads
+data/      - processed and merged datasets (log2)
 scripts/   - analysis scripts
 results/   - statistical summaries
 figures/   - publication-ready plots

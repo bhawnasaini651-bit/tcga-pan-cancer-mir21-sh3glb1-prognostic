@@ -2,3 +2,4 @@
 .RData
 logs/
 raw/
+renv/library/

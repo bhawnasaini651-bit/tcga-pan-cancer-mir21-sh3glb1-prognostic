@@ -1,6 +1,24 @@
+# R session files
 .Rhistory
 .RData
+
+# Logs
 logs/
-raw/
+
+# Raw and processed data
+data/raw/
+data/processed/
+
+# GDC artifacts
+*.tar.gz
+*.zip
+gdc_manifest.txt
+gdc_client_configuration.dtt
+gdc-client*
+
+# renv binaries
 renv/library/
-MANIFEST.txt
+renv/staging/
+
+# OS junk
+.DS_Store

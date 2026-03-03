@@ -21,10 +21,10 @@ if (!file.exists(cohort_file)) {
 
 cohorts <- read.csv(cohort_file, stringsAsFactors = FALSE)
 projects <- cohorts$project
+total_projects <- length(projects)
 
 cat("Projects to download:", length(projects), "\n")
-
-for (proj_id in projects) {
+for (proj_id in projects){
 
    cat("====================================\n")
   cat("Project:", proj_id, "\n")
@@ -50,12 +50,13 @@ for (proj_id in projects) {
 
     GDCdownload(
       query           = query,
-      method          = "api",
+      method          = "client",
       directory       = "data/raw",
-      files.per.chunk = 6
     )
 
-    cat("Done:", proj_id, "\n")
+    completed <- length(list.dirs("data/raw", full.names = FALSE, recursive = FALSE))
+cat("Done:", proj_id, "\n")
+cat("Progress:", completed, "/", total_projects, "\n\n")
 
   }, error = function(e) {
     cat("Failed:", proj_id, "-", conditionMessage(e), "\n")

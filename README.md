@@ -1,8 +1,8 @@
 PROJECT TITLE: TCGA Pan-Cancer Prognostic Analysis
-FOCUS: miR-21 and SH3GLB1
+FOCUS: SH3GLB1
 
 Objective:
-Pan-cancer evaluation of miR-21 and SH3GLB1 expression and their prognostic impact across selected TCGA tumor types with available tumor and normal samples.
+Pan-cancer evaluation of SH3GLB1 expression and their prognostic impact across selected TCGA tumor types with available tumor and normal samples.
 
 Analyses
 1. Tumor vs Normal expression comparison
